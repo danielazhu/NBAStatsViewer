@@ -9,6 +9,8 @@
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.io.*;
 import java.net.*;
@@ -17,10 +19,12 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
+import objectdraw.*;
+
 public class Player {
 
 	private static final int CATEGORIES = 30;
-	private static final int MAX_GAMES = 82;
+	private static final int MAX_GAMES = 86;
 	private String[][] stats;
 	private int numGames;
 	private String playerName;
@@ -97,25 +101,79 @@ public class Player {
 		}
 	}
 
-	public void displayStats(JPanel mainPanel, Container contentPane) {
-		System.out.println(contentPane.getWidth());
-		JLabel[][] statsLabels = new JLabel[stats.length][stats[0].length];
+	public void displayStats(NBAStatsViewer nbaStatsViewer, JPanel mainPanel,
+			Container contentPane, JLabel[][] statsLabels) {
+		//statsLabels = new JLabel[stats.length][stats[0].length];
 
 		contentPane.remove(mainPanel);
 		Component[] tempComponents = mainPanel.getComponents();
-		mainPanel = new JPanel(new GridLayout(numGames, CATEGORIES));
+		mainPanel = new JPanel(new GridLayout(numGames, CATEGORIES + 8));
 
 		for (int i = 0; i < numGames; i++) {
 			for (int j = 0; j < CATEGORIES; j++) {
-				if (stats[i][j] == null)
-					stats[i][j] = "DNP";
-				statsLabels[i][j] = new JLabel(stats[i][j]);
-				mainPanel.add(statsLabels[i][j]);
+				statsLabels[i][j] = new JLabel();
+				switch (j) {
+				/*
+				 * Don't want to display things like age, advanced statistics,
+				 * games started
+				 */
+				case 1:
+				case 3:
+				case 8:
+				case 28:
+					continue;
+
+				case 2: // Game Date
+					if (!stats[i][j].contains("Date"))
+						stats[i][j] = stats[i][j].substring(5,
+								stats[i][j].length());
+				default:
+					if (stats[i][j] == null)
+						stats[i][j] = "DNP";
+					statsLabels[i][j].setText(stats[i][j]);
+					statsLabels[i][j].addMouseListener(nbaStatsViewer);
+					if (j > 7)
+						statsLabels[i][j].setCursor(Cursor
+								.getPredefinedCursor(Cursor.HAND_CURSOR));
+					mainPanel.add(statsLabels[i][j]);
+					break;
+				}
 			}
 		}
 
 		JScrollPane scrollPanel = new JScrollPane(mainPanel);
+		scrollPanel.setPreferredSize(new Dimension(contentPane.getWidth(),
+				contentPane.getHeight() / 2));
 		contentPane.add(scrollPanel, BorderLayout.SOUTH);
 		contentPane.validate();
+	}
+	
+	public void displayGraph(int category, DrawingCanvas canvas) {
+		Double[] dataPoints = new Double[stats.length];
+		int ignoredDataPoints = 0;
+		for(int i = 0; i < numGames; i++) {
+			if(stats[i][category].equals(stats[0][category]) || stats[i][category] == "DNP")
+				ignoredDataPoints++;
+			else
+				dataPoints[i-ignoredDataPoints] = Double.parseDouble(stats[i][category]);
+		}
+		
+		double pointDistance = (double)canvas.getWidth()/((double)numGames-ignoredDataPoints+2);
+		double graphHeight = canvas.getHeight()/2;
+		
+		double lowestVal = 0;
+		double highestVal = dataPoints[0];
+		for(int i = 1; i < numGames-ignoredDataPoints; i++) {
+			double tempVal = dataPoints[i];
+			if(tempVal > highestVal)
+				highestVal = tempVal;
+			else if(tempVal < lowestVal)
+				lowestVal = tempVal;
+		}
+
+		double graphScale = graphHeight / highestVal;
+		for(int i = 0; i < numGames-ignoredDataPoints; i++) {
+			new FilledOval(pointDistance*(i+1), graphScale * dataPoints[i], 10, 10, canvas);
+		}
 	}
 }

@@ -28,6 +28,7 @@ public class Player {
 	private String[][] stats;
 	private int numGames;
 	private String playerName;
+	private XYGraph graph;
 
 	/**
 	 * Retrieve stats from basketball-reference.com using the player's name
@@ -103,7 +104,7 @@ public class Player {
 
 	public void displayStats(NBAStatsViewer nbaStatsViewer, JPanel mainPanel,
 			Container contentPane, JLabel[][] statsLabels) {
-		//statsLabels = new JLabel[stats.length][stats[0].length];
+		// statsLabels = new JLabel[stats.length][stats[0].length];
 
 		contentPane.remove(mainPanel);
 		Component[] tempComponents = mainPanel.getComponents();
@@ -147,33 +148,24 @@ public class Player {
 		contentPane.add(scrollPanel, BorderLayout.SOUTH);
 		contentPane.validate();
 	}
-	
+
 	public void displayGraph(int category, DrawingCanvas canvas) {
-		Double[] dataPoints = new Double[stats.length];
+		if (graph != null)
+			graph.removeGraph();
+		double[] dataPoints = new double[stats.length];
 		int ignoredDataPoints = 0;
-		for(int i = 0; i < numGames; i++) {
-			if(stats[i][category].equals(stats[0][category]) || stats[i][category] == "DNP")
+		for (int i = 0; i < numGames; i++) {
+			if (stats[i][category].equals(stats[0][category]))
 				ignoredDataPoints++;
 			else
-				dataPoints[i-ignoredDataPoints] = Double.parseDouble(stats[i][category]);
-		}
-		
-		double pointDistance = (double)canvas.getWidth()/((double)numGames-ignoredDataPoints+2);
-		double graphHeight = canvas.getHeight()/2;
-		
-		double lowestVal = 0;
-		double highestVal = dataPoints[0];
-		for(int i = 1; i < numGames-ignoredDataPoints; i++) {
-			double tempVal = dataPoints[i];
-			if(tempVal > highestVal)
-				highestVal = tempVal;
-			else if(tempVal < lowestVal)
-				lowestVal = tempVal;
+				try {
+					dataPoints[i - ignoredDataPoints] = Double
+							.parseDouble(stats[i][category]);
+				} catch (Exception e) {
+					dataPoints[i - ignoredDataPoints] = 0;
+				}
 		}
 
-		double graphScale = graphHeight / highestVal;
-		for(int i = 0; i < numGames-ignoredDataPoints; i++) {
-			new FilledOval(pointDistance*(i+1), graphScale * dataPoints[i], 10, 10, canvas);
-		}
+		graph = new XYGraph(dataPoints, numGames - ignoredDataPoints, canvas, playerName.concat(" - " + stats[0][category]));
 	}
 }

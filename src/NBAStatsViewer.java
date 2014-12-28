@@ -1,6 +1,6 @@
 /**
  * This is the main controller for NBAStatsViewer. The applet is initialized
- * here and calls the begin() method. Please use window size 600 x 600.
+ * here and calls the begin() method. Please use full screen after opening the applet.
  * 
  * @author Daniel Zhu
  *
@@ -19,15 +19,19 @@ public class NBAStatsViewer extends WindowController implements ActionListener,
 	private static final int WINDOW_SIZE = 600;
 	private static final int CATEGORIES = 30;
 	private static final int MAX_GAMES = 86;
+	private static final String INTRO_MESSAGE = "Please use full screen. Enter the name of an NBA player to look up 2014-15 stats.";
 
+	private JLabel introLabel;
 	private JTextField playerNameField;
 	private JPanel mainPanel;
 	private JLabel[][] statsLabels;
 	private Player currentPlayer;
 
 	public void begin() {
-		playerNameField = new JTextField("Enter player name.");
-		mainPanel = new JPanel();
+		introLabel = new JLabel(INTRO_MESSAGE);
+		playerNameField = new JTextField("Lebron James");
+		mainPanel = new JPanel(new GridLayout(2, 0));
+		mainPanel.add(introLabel);
 		mainPanel.add(playerNameField);
 		getContentPane().add(mainPanel, BorderLayout.SOUTH);
 		getContentPane().validate();
@@ -38,7 +42,16 @@ public class NBAStatsViewer extends WindowController implements ActionListener,
 
 	public void actionPerformed(ActionEvent e) {
 		if (e.getSource() == playerNameField) {
+			introLabel.setText("Retrieving data...");
 			currentPlayer = new Player(playerNameField.getText());
+			for(int i = 1; i < 5; i++) {
+				if(currentPlayer.retrieveData(i))
+					break;
+				else if(i == 4) {
+					introLabel.setText("Data retrieval failed. Incorrect input or basketball-reference.com is down.");
+					return;
+				}
+			}
 			statsLabels = new JLabel[MAX_GAMES][CATEGORIES];
 			currentPlayer.displayStats(this, mainPanel, getContentPane(),
 					statsLabels);

@@ -35,6 +35,18 @@ public class Player {
 	 */
 	public Player(String playerName) {
 		this.playerName = playerName;
+	}
+
+	/**
+	 * Retrieve 2014-2015 season data for a player from basketball-reference.com
+	 * 
+	 * @param urlNumber
+	 *            The URL takes the format for Firstname Lastname:
+	 *            basketball-reference.com/L/LastnFi01 but if there are multiple
+	 *            players named Joe Johnson or John Johnson, then it could be
+	 *            /L/LastnFi02 so the urlNumber tries a succession of numbers
+	 */
+	public boolean retrieveData(int urlNumber) {
 		stats = new String[MAX_GAMES][CATEGORIES];
 
 		/*
@@ -51,9 +63,8 @@ public class Player {
 
 		try {
 			URL url = new URL("http://www.basketball-reference.com/players/"
-					+ names[1].charAt(0) + "/" + names[1] + names[0]
-					+ "01/gamelog/2015/");
-
+					+ names[1].charAt(0) + "/" + names[1] + names[0] + "0"
+					+ urlNumber + "/gamelog/2015/");
 			InputStream inputStream = url.openStream();
 			BufferedReader reader = new BufferedReader(new InputStreamReader(
 					inputStream));
@@ -95,19 +106,21 @@ public class Player {
 				}
 			}
 			reader.close();
+			return true;
 		} catch (MalformedURLException e) {
-			e.printStackTrace();
+			return false;
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println(e.getMessage());
+			return false;
+		} catch (Exception e) {
+			return false;
 		}
 	}
 
 	public void displayStats(NBAStatsViewer nbaStatsViewer, JPanel mainPanel,
 			Container contentPane, JLabel[][] statsLabels) {
-		// statsLabels = new JLabel[stats.length][stats[0].length];
 
 		contentPane.remove(mainPanel);
-		Component[] tempComponents = mainPanel.getComponents();
 		mainPanel = new JPanel(new GridLayout(numGames, CATEGORIES + 8));
 
 		for (int i = 0; i < numGames; i++) {
@@ -153,19 +166,27 @@ public class Player {
 		if (graph != null)
 			graph.removeGraph();
 		double[] dataPoints = new double[stats.length];
+		String[] dates = new String[stats.length];
 		int ignoredDataPoints = 0;
 		for (int i = 0; i < numGames; i++) {
 			if (stats[i][category].equals(stats[0][category]))
 				ignoredDataPoints++;
-			else
+			else {
 				try {
-					dataPoints[i - ignoredDataPoints] = Double
-							.parseDouble(stats[i][category]);
+					if (stats[0][category].contains("MP"))
+						dataPoints[i - ignoredDataPoints] = Double
+								.parseDouble(stats[i][category].substring(0, 2));
+					else
+						dataPoints[i - ignoredDataPoints] = Double
+								.parseDouble(stats[i][category]);
 				} catch (Exception e) {
 					dataPoints[i - ignoredDataPoints] = 0;
 				}
+				dates[i - ignoredDataPoints] = stats[i][2];
+			}
 		}
 
-		graph = new XYGraph(dataPoints, numGames - ignoredDataPoints, canvas, playerName.concat(" - " + stats[0][category]));
+		graph = new XYGraph(dataPoints, dates, numGames - ignoredDataPoints,
+				canvas, playerName.concat(" - " + stats[0][category]));
 	}
 }
